@@ -20,6 +20,7 @@ package org.bson.util;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Maps Class objects to values. A ClassMap is different from a regular Map in
@@ -61,7 +62,7 @@ public class ClassMap<T>  {
         }
     };
 
-    private final Map<Class<?>, T> map = CopyOnWriteMap.newHashMap();
+    private final ConcurrentMap<Class<?>, T> map = CopyOnWriteMap.newHashMap();
     private final Map<Class<?>, T> cache = ComputingMap.create(new ComputeFunction());
 
 
@@ -96,5 +97,19 @@ public class ClassMap<T>  {
 
     public boolean isEmpty() {
         return map.isEmpty();
+    }
+
+    /**
+     * A variant on the standard putIfAbsent semantics where the value 
+     * that is in the map afterwards is returned, the supplied value if 
+     * previously null, otherwise the value already there.
+     */
+    public T putIfAbsent(Class<?> key, T value)  {
+        T oldValue = map.putIfAbsent(key, value);
+        if (oldValue == null) {
+            cache.clear();
+            return value;
+        }
+        return oldValue;
     }
 }
